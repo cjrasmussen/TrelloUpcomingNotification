@@ -1,7 +1,7 @@
 {
   "name": "cjrasmussen/trello-upcoming-notification",
   "description": "Class for building and sending Slack notifications based on Trello cards with upcoming due dates",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "keywords": ["Trello", "Slack"],
   "homepage": "https://www.clarkrasmussen.com",
   "license": "MIT",
@@ -25,7 +25,7 @@
   },
   "autoload": {
     "psr-4": {
-      "cjrasmussen\\WordpressApi\\": "src/"
+      "cjrasmussen\\TrelloUpcomingNotification\\": "src/"
     }
   }
 }
