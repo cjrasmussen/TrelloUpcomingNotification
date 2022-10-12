@@ -20,7 +20,7 @@ $trelloNotification = new TrelloUpcomingNotification($trello_lists, $trello_igno
 
 $trello = new TrelloApi($key, $token);
 $trelloNotification->executeCheck($trello);
-if ($trelloNotification->areNotificationsAvailable()) {
+if ($trelloNotification->isNotificationAvailable()) {
 	$slack = new SlackApi($slack_webhook_url);
 	$trelloNotification->sendSlackNotification($slack);
 }

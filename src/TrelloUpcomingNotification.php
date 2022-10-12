@@ -74,9 +74,9 @@ class TrelloUpcomingNotification
 	/**
 	 * @return bool
 	 */
-	public function areNotificationsAvailable(): bool
+	public function isNotificationAvailable(): bool
 	{
-		return ((count($this->notification[self::NOTIFICATION_TYPE_TODAY]) > 0) || ($this->notification[self::NOTIFICATION_TYPE_OVERDUE] > 0));
+		return ((count($this->notification[self::NOTIFICATION_TYPE_TODAY]) > 0) || (count($this->notification[self::NOTIFICATION_TYPE_OVERDUE]) > 0));
 	}
 
 	/**
@@ -86,7 +86,7 @@ class TrelloUpcomingNotification
 	 */
 	public function sendSlackNotification(SlackApi $slackApi, ?string $channel = null): ?bool
 	{
-		if (!$this->areNotificationsAvailable()) {
+		if (!$this->isNotificationAvailable()) {
 			return null;
 		}
 
