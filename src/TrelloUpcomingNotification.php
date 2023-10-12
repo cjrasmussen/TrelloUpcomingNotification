@@ -125,7 +125,7 @@ class TrelloUpcomingNotification
 							'text' => '<' . $item['url'] . '|' . $item['title'] . '>',
 						],
 					];
-					if ($item['due_date']) {
+					if (array_key_exists('due_date', $item)) {
 						$blocks[] = (object)[
 							'type' => 'context',
 							'elements' => [
