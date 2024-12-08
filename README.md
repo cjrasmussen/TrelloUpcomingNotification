@@ -2,7 +2,6 @@
 
 Simple class for checking one or more Trello lists for due or overdue cards, then sending a message about them via a Slack webhook. Not affiliated with Trello or Slack.
 
-
 ## Usage
 
 ```php
@@ -16,13 +15,14 @@ $trello_lists = [
 ];
 $trello_ignore_label = 'asdfghjklpoiuytrewqzxcvb';
 
-$trelloNotification = new TrelloUpcomingNotification($trello_lists, $trello_ignore_label);
-
 $trello = new TrelloApi($key, $token);
-$trelloNotification->executeCheck($trello);
+$slack = new SlackApi($slack_webhook_url);
+
+$trelloNotification = new TrelloUpcomingNotification($trello, $slack, $trello_lists, $trello_ignore_label);
+
+$trelloNotification->executeCheck();
 if ($trelloNotification->isNotificationAvailable()) {
-	$slack = new SlackApi($slack_webhook_url);
-	$trelloNotification->sendSlackNotification($slack);
+	$trelloNotification->sendSlackNotification();
 }
 ```
 
@@ -37,7 +37,6 @@ composer require cjrasmussen/trello-upcoming-notification
 TrelloUpcomingNotification has dependencies on `cjrasmussen\SlackApi` and `cjrasmussen\TrelloApi` so these will be installed as well.
 
 Although it's recommended to use Composer, you can actually include the file(s) any way you want.
-
 
 ## License
 

@@ -4,32 +4,31 @@ namespace cjrasmussen\TrelloUpcomingNotification;
 
 use cjrasmussen\SlackApi\SlackApi;
 use cjrasmussen\TrelloApi\TrelloApi;
+use DateTime;
+use Exception;
 
 class TrelloUpcomingNotification
 {
-	private const NOTIFICATION_TYPE_TODAY = 'today';
-	private const NOTIFICATION_TYPE_OVERDUE = 'overdue';
-
-	private const NOTIFICATION_TYPE_NAMES = [
-		self::NOTIFICATION_TYPE_TODAY => 'Due Today',
-		self::NOTIFICATION_TYPE_OVERDUE => 'Overdue',
-	];
-
+	private TrelloApi $trelloApi;
+	private SlackApi $slackApi;
 	private array $checkLists;
 	private array $ignoreLabels;
-	private string $checkDate;
-	private array $notification = [
-		self::NOTIFICATION_TYPE_TODAY => [],
-		self::NOTIFICATION_TYPE_OVERDUE => [],
-	];
+	private ?DateTime $upcomingDate = null;
+	private DateTime $checkDate;
+	private TrelloUpcomingNotificationCollection $collection;
 
 	/**
+	 * @param TrelloApi $trelloApi
+	 * @param SlackApi $slackApi
 	 * @param array $checkLists
 	 * @param array|string|null $ignoreLabels
+	 * @param string|null $upcomingDate
 	 * @param string|null $checkDate
 	 */
-	public function __construct(array $checkLists, $ignoreLabels = null, ?string $checkDate = null)
+	public function __construct(TrelloApi $trelloApi, SlackApi $slackApi, array $checkLists, $ignoreLabels = null, ?string $upcomingDate = null, ?string $checkDate = null)
 	{
+		$this->trelloApi = $trelloApi;
+		$this->slackApi = $slackApi;
 		$this->checkLists = $checkLists;
 
 		if (is_array($ignoreLabels)) {
@@ -40,32 +39,56 @@ class TrelloUpcomingNotification
 			$this->ignoreLabels = [];
 		}
 
-		$this->checkDate = ($checkDate) ? date('Y-m-d', strtotime($checkDate)) : date('Y-m-d');
+		if (is_numeric($checkDate)) {
+			$checkDate = '@' . $checkDate;
+		}
+
+		if (is_numeric($upcomingDate)) {
+			$upcomingDate = '@' . $upcomingDate;
+		}
+
+		try {
+			$this->checkDate = ($checkDate) ? new DateTime($checkDate) : new DateTime();
+		} catch (Exception $e) {
+			$this->checkDate = new DateTime();
+		}
+
+		if ($upcomingDate) {
+			$this->upcomingDate = clone $this->checkDate;
+			$this->upcomingDate->modify($upcomingDate);
+		}
+
+		$this->collection = new TrelloUpcomingNotificationCollection();
 	}
 
-	public function executeCheck(TrelloApi $trelloApi): void
+	/**
+	 * @return void
+	 * @throws Exception
+	 */
+	public function executeCheck(): void
 	{
 		foreach ($this->checkLists AS $list_id) {
 			// GET THE CARD DATA FOR THE LIST
-			$data = $trelloApi->request('GET', ('/1/lists/' . $list_id . '/cards'));
+			$data = $this->trelloApi->request('GET', ('/1/lists/' . $list_id . '/cards'));
 
 			foreach ($data AS $card) {
 				if ((!$card->due) || (count(array_intersect($this->ignoreLabels, $card->idLabels))) > 0) {
 					continue;
 				}
 
-				$due_date = date('Y-m-d', strtotime($card->due));
-				if ($due_date === $this->checkDate) {
-					$this->notification[self::NOTIFICATION_TYPE_TODAY][] = [
-						'title' => $card->name,
-						'url' => $card->url,
-					];
-				} elseif ($due_date < $this->checkDate) {
-					$this->notification[self::NOTIFICATION_TYPE_OVERDUE][] = [
-						'title' => $card->name,
-						'url' => $card->url,
-						'due_date' => date('n/j/Y', strtotime($card->due)),
-					];
+				$dueDate = new DateTime($card->due);
+
+				$item = new TrelloUpcomingNotificationItem($card->name, $card->url, $dueDate);
+
+				if ($dueDate->format('Y-m-d') === $this->checkDate->format('Y-m-d')) {
+					$item->setType(TrelloUpcomingNotificationItemType::NOTIFICATION_ITEM_TYPE_TODAY);
+					$this->collection->addItem($item);
+				} elseif ($dueDate < $this->checkDate) {
+					$item->setType(TrelloUpcomingNotificationItemType::NOTIFICATION_ITEM_TYPE_OVERDUE);
+					$this->collection->addItem($item);
+				} elseif (($this->upcomingDate) && ($dueDate < $this->upcomingDate)) {
+					$item->setType(TrelloUpcomingNotificationItemType::NOTIFICATION_ITEM_TYPE_UPCOMING);
+					$this->collection->addItem($item);
 				}
 			}
 		}
@@ -76,15 +99,15 @@ class TrelloUpcomingNotification
 	 */
 	public function isNotificationAvailable(): bool
 	{
-		return ((count($this->notification[self::NOTIFICATION_TYPE_TODAY]) > 0) || (count($this->notification[self::NOTIFICATION_TYPE_OVERDUE]) > 0));
+		return $this->collection->hasItems();
 	}
 
 	/**
-	 * @param SlackApi $slackApi
 	 * @param string|null $channel
+	 * @param string|null $overdueMention
 	 * @return bool|null
 	 */
-	public function sendSlackNotification(SlackApi $slackApi, ?string $channel = null): ?bool
+	public function sendSlackNotification(?string $channel = null, ?string $overdueMention = null): ?bool
 	{
 		if (!$this->isNotificationAvailable()) {
 			return null;
@@ -103,39 +126,49 @@ class TrelloUpcomingNotification
 			],
 		];
 
-		foreach ($this->notification AS $notification_type => $notification_items) {
-			$item_count = count($notification_items);
+		if (($overdueMention) && ($this->collection->hasItemType(TrelloUpcomingNotificationItemType::NOTIFICATION_ITEM_TYPE_OVERDUE))) {
+			$blocks[] = (object)[
+				'type' => 'section',
+				'text' => (object)[
+					'type' => 'mrkdwn',
+					'text' => '<' . $overdueMention . '>',
+				],
+			];
+		}
 
-			if ($item_count) {
-				$item_count_word = 'item' . (($item_count === 1) ? '' : 's');
+		$presentItemType = $this->collection->getPresentItemTypes();
+		foreach ($presentItemType AS $itemType) {
+			$itemCount = $this->collection->getItemCountByItemType($itemType);
+			$items = $this->collection->getItemsByItemType($itemType);
 
+			$item_count_word = 'item' . (($itemCount === 1) ? '' : 's');
+
+			$blocks[] = (object)[
+				'type' => 'header',
+				'text' => (object)[
+					'type' => 'plain_text',
+					'text' => TrelloUpcomingNotificationItemType::getItemTypeName($itemType) . ' (' . $itemCount . ' ' . $item_count_word . ')',
+				],
+			];
+
+			foreach ($items AS $item) {
 				$blocks[] = (object)[
-					'type' => 'header',
+					'type' => 'section',
 					'text' => (object)[
-						'type' => 'plain_text',
-						'text' => self::NOTIFICATION_TYPE_NAMES[$notification_type] . ' (' . $item_count . ' ' . $item_count_word . ')',
+						'type' => 'mrkdwn',
+						'text' => '<' . $item->getUrl() . '|' . $item->getTitle() . '>',
 					],
 				];
-
-				foreach ($notification_items AS $item) {
+				if (in_array($itemType, [TrelloUpcomingNotificationItemType::NOTIFICATION_ITEM_TYPE_OVERDUE, TrelloUpcomingNotificationItemType::NOTIFICATION_ITEM_TYPE_UPCOMING], true)) {
 					$blocks[] = (object)[
-						'type' => 'section',
-						'text' => (object)[
-							'type' => 'mrkdwn',
-							'text' => '<' . $item['url'] . '|' . $item['title'] . '>',
+						'type' => 'context',
+						'elements' => [
+							(object)[
+								'type' => 'mrkdwn',
+								'text' => '*Due Date:* ' . $item->getDueDate()->format('n/j/Y'),
+							],
 						],
 					];
-					if (array_key_exists('due_date', $item)) {
-						$blocks[] = (object)[
-							'type' => 'context',
-							'elements' => [
-								(object)[
-									'type' => 'mrkdwn',
-									'text' => '*Due Date:* ' . $item['due_date'],
-								],
-							],
-						];
-					}
 				}
 			}
 		}
@@ -148,6 +181,6 @@ class TrelloUpcomingNotification
 			$msg['channel'] = $channel;
 		}
 
-		return $slackApi->sendMessage($msg);
+		return $this->slackApi->sendMessage($msg);
 	}
 }
