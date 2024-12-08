@@ -1,7 +1,7 @@
 {
   "name": "cjrasmussen/trello-upcoming-notification",
   "description": "Class for building and sending Slack notifications based on Trello cards with upcoming due dates",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "keywords": ["Trello", "Slack"],
   "homepage": "https://www.clarkrasmussen.com",
   "license": "MIT",

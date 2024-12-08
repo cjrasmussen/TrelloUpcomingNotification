@@ -18,12 +18,8 @@ $trello_ignore_label = 'asdfghjklpoiuytrewqzxcvb';
 $trello = new TrelloApi($key, $token);
 $slack = new SlackApi($slack_webhook_url);
 
-$trelloNotification = new TrelloUpcomingNotification($trello, $slack, $trello_lists, $trello_ignore_label);
-
-$trelloNotification->executeCheck();
-if ($trelloNotification->isNotificationAvailable()) {
-	$trelloNotification->sendSlackNotification();
-}
+$trelloNotification = new TrelloUpcomingNotification($trello, $slack);
+$trelloNotification->buildNotification($trello_lists, $trello_ignore_label)->sendNotification();
 ```
 
 ## Installation
