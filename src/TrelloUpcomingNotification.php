@@ -42,7 +42,7 @@ class TrelloUpcomingNotification
 		}
 
 		if (is_numeric($check_date)) {
-			$checkDate = '@' . $check_date;
+			$check_date = '@' . $check_date;
 		}
 
 		if (is_numeric($upcoming_date)) {
