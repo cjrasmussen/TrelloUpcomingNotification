@@ -3,6 +3,7 @@
 namespace cjrasmussen\TrelloUpcomingNotification;
 
 use cjrasmussen\SlackApi\SlackApi;
+use JsonException;
 use RuntimeException;
 
 class TrelloUpcomingNotificationResponse
@@ -110,6 +111,7 @@ class TrelloUpcomingNotificationResponse
 	 * @param string|null $channel
 	 * @param string|null $overdueMention
 	 * @return bool|null
+	 * @throws JsonException
 	 */
 	public function sendNotification(?string $channel = null, ?string $overdueMention = null): ?bool
 	{

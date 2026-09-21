@@ -1,7 +1,7 @@
 {
   "name": "cjrasmussen/trello-upcoming-notification",
   "description": "Class for building and sending Slack notifications based on Trello cards with upcoming due dates",
-  "version": "2.1.1",
+  "version": "3.0.0",
   "keywords": ["Trello", "Slack"],
   "homepage": "https://www.clarkrasmussen.com",
   "license": "MIT",
@@ -17,7 +17,7 @@
     "source": "https://github.com/cjrasmussen/TrelloUpcomingNotification"
   },
   "require": {
-    "php": ">=7.4.0",
+    "php": ">=8.5.0",
     "ext-curl": "*",
     "ext-json": "*",
     "cjrasmussen/slack-api": "^1.0",

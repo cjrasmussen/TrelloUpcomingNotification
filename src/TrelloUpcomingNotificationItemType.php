@@ -6,11 +6,11 @@ use RuntimeException;
 
 class TrelloUpcomingNotificationItemType
 {
-	public const NOTIFICATION_ITEM_TYPE_TODAY = 1;
-	public const NOTIFICATION_ITEM_TYPE_OVERDUE = 2;
-	public const NOTIFICATION_ITEM_TYPE_UPCOMING = 3;
+	public const int NOTIFICATION_ITEM_TYPE_TODAY = 1;
+	public const int NOTIFICATION_ITEM_TYPE_OVERDUE = 2;
+	public const int NOTIFICATION_ITEM_TYPE_UPCOMING = 3;
 
-	private const NOTIFICATION_ITEM_TYPE_NAMES = [
+	private const array NOTIFICATION_ITEM_TYPE_NAMES = [
 		self::NOTIFICATION_ITEM_TYPE_TODAY => 'Due Today',
 		self::NOTIFICATION_ITEM_TYPE_OVERDUE => 'Overdue',
 		self::NOTIFICATION_ITEM_TYPE_UPCOMING => 'Upcoming',

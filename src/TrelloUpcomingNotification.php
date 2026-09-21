@@ -30,15 +30,15 @@ class TrelloUpcomingNotification
 	 * @param string|null $upcoming_date
 	 * @param string|null $check_date
 	 *
-	 * @return void
+	 * @return TrelloUpcomingNotificationResponse
 	 * @throws Exception
 	 */
-	public function buildNotification(array $check_lists, $ignore_labels = null, ?string $upcoming_date = null, ?string $check_date = null): TrelloUpcomingNotificationResponse
+	public function buildNotification(array $check_lists, array|string|null $ignore_labels = null, ?string $upcoming_date = null, ?string $check_date = null): TrelloUpcomingNotificationResponse
 	{
 		if (is_null($ignore_labels)) {
 			$ignore_labels = [];
 		} elseif (!is_array($ignore_labels)) {
-			$ignore_labels = [(string)$ignore_labels];
+			$ignore_labels = [$ignore_labels];
 		}
 
 		if (is_numeric($check_date)) {
@@ -51,7 +51,7 @@ class TrelloUpcomingNotification
 
 		try {
 			$checkDate = ($check_date) ? new DateTime($check_date) : new DateTime();
-		} catch (Exception $e) {
+		} catch (Exception) {
 			$checkDate = new DateTime();
 		}
 
